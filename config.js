@@ -13,7 +13,7 @@ const CONFIG = {
     
     // Path to the questions folder in your repository (leave empty if in root)
     // Example: 'questions' or 'materials/questions'
-    questionsPath: '',
+    questionsPath:'question_paper',
     
     // GitHub Personal Access Token (optional, but recommended for higher API rate limits)
     // Generate at: https://github.com/settings/tokens
