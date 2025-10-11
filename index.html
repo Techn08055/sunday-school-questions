@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunday School Question Bank</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-book-open"></i> Sunday School Question Bank</h1>
+            <p class="tagline">Your complete resource for class materials</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="controls">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search materials...">
+            </div>
+            <div class="filter-group">
+                <select id="classFilter">
+                    <option value="">All Classes</option>
+                </select>
+                <select id="yearFilter">
+                    <option value="">All Years</option>
+                </select>
+                <button id="refreshBtn" class="refresh-btn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </section>
+
+        <section id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading materials from GitHub...</p>
+        </section>
+
+        <section id="error" class="error-message" style="display: none;">
+            <i class="fas fa-exclamation-circle"></i>
+            <p id="errorText"></p>
+        </section>
+
+        <section id="content" class="content-grid">
+            <!-- Dynamic content will be inserted here -->
+        </section>
+
+        <section id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-folder-open"></i>
+            <h3>No materials found</h3>
+            <p>Try adjusting your filters or search criteria</p>
+        </section>
+    </main>
+
+    <!-- PDF Viewer Modal -->
+    <div id="pdfModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="pdfTitle"></h3>
+                <button class="close-btn" onclick="closePdfModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <iframe id="pdfViewer" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="imageTitle"></h3>
+                <button class="close-btn" onclick="closeImageModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <img id="imageViewer" alt="Question image">
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Sunday School Question Bank. Powered by GitHub.</p>
+            <p class="config-note">Configure your repository in <strong>config.js</strong></p>
+        </div>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
+
