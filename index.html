@@ -12,6 +12,9 @@
         <div class="container">
             <h1><i class="fas fa-book-open"></i> Sunday School Question Bank</h1>
             <p class="tagline">Your complete resource for class materials</p>
+            <button id="uploadBtn" class="upload-header-btn" title="Upload Files">
+                <i class="fas fa-cloud-upload-alt"></i> Upload
+            </button>
         </div>
     </header>
 
@@ -81,6 +84,96 @@
             </div>
             <div class="modal-body">
                 <img id="imageViewer" alt="Question image">
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content upload-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-cloud-upload-alt"></i> Upload Files</h3>
+                <button class="close-btn" onclick="closeUploadModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Authentication Section -->
+                <div id="authSection" class="auth-section">
+                    <p class="auth-message">
+                        <i class="fas fa-lock"></i> Admin authentication required
+                    </p>
+                    <div class="form-group">
+                        <label for="adminToken">GitHub Personal Access Token:</label>
+                        <input type="password" id="adminToken" placeholder="ghp_your_token_here" />
+                        <small class="help-text">
+                            Your token needs 'repo' or 'public_repo' scope. 
+                            <a href="https://github.com/settings/tokens" target="_blank">Generate token</a>
+                        </small>
+                    </div>
+                    <button id="authBtn" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Authenticate
+                    </button>
+                </div>
+
+                <!-- Upload Form Section -->
+                <div id="uploadSection" style="display: none;">
+                    <div class="upload-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Upload PDF or image files (JPG, PNG, GIF, WEBP) - Max 25MB per file</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="uploadClass">Class:</label>
+                        <select id="uploadClass" required>
+                            <option value="">Select Class</option>
+                            <option value="Class 1">Class 1</option>
+                            <option value="Class 2">Class 2</option>
+                            <option value="Class 3">Class 3</option>
+                            <option value="Class 4">Class 4</option>
+                            <option value="Class 5">Class 5</option>
+                            <option value="Class 6">Class 6</option>
+                            <option value="Class 7">Class 7</option>
+                            <option value="Class 8">Class 8</option>
+                            <option value="Class 9">Class 9</option>
+                            <option value="Class 10">Class 10</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="uploadYear">Year:</label>
+                        <input type="number" id="uploadYear" min="2020" max="2030" 
+                               placeholder="e.g., 2025" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Files:</label>
+                        <div class="file-drop-zone" id="fileDropZone">
+                            <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                            <p>Drag & drop files here or click to browse</p>
+                            <input type="file" id="fileInput" multiple 
+                                   accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" />
+                        </div>
+                    </div>
+
+                    <div id="fileList" class="file-list"></div>
+
+                    <div id="uploadProgress" class="upload-progress" style="display: none;">
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <p id="progressText">Uploading...</p>
+                    </div>
+
+                    <div class="upload-actions">
+                        <button id="uploadFilesBtn" class="btn btn-success" disabled>
+                            <i class="fas fa-upload"></i> Upload Files
+                        </button>
+                        <button id="clearFilesBtn" class="btn btn-secondary">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

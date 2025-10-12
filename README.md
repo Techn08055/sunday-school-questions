@@ -13,6 +13,9 @@ A modern, static website that uses GitHub as a backend to store and serve questi
 - 🔄 Automatic content updates from GitHub
 - 🚀 Zero backend - completely static
 - ⚡ Fast and lightweight
+- ⬆️ **NEW:** Built-in file upload feature with drag & drop support
+- 🔐 **NEW:** Secure authentication with GitHub Personal Access Token
+- 📊 **NEW:** Real-time upload progress tracking
 
 ## Setup Instructions
 
@@ -118,6 +121,19 @@ You can host these files on any static hosting service like:
 ## Usage
 
 ### Adding New Materials
+
+#### Method 1: Direct Upload (Recommended ⭐)
+
+1. **Click the "Upload" button** in the website header
+2. **Authenticate** with your GitHub Personal Access Token (see [UPLOAD_GUIDE.md](UPLOAD_GUIDE.md))
+3. **Select class and year**
+4. **Drag & drop files** or click to browse
+5. **Click "Upload Files"**
+6. Done! Files are automatically added to your repository
+
+**See [UPLOAD_GUIDE.md](UPLOAD_GUIDE.md) for detailed upload instructions.**
+
+#### Method 2: Manual Git Upload
 
 1. Add your PDF or image files to the appropriate class and year folders in your GitHub repository
 2. Commit and push the changes
