@@ -2,6 +2,7 @@
 let allMaterials = [];
 let classes = new Set();
 let years = new Set();
+let currentMaterial = null;
 
 // DOM Elements
 const loadingEl = document.getElementById('loading');
@@ -18,7 +19,30 @@ const refreshBtn = document.getElementById('refreshBtn');
 document.addEventListener('DOMContentLoaded', () => {
     loadMaterials();
     setupEventListeners();
+    setupDownloadButtons();
 });
+
+// Setup download button event listeners
+function setupDownloadButtons() {
+    const pdfDownloadBtn = document.getElementById('pdfDownloadBtn');
+    const imageDownloadBtn = document.getElementById('imageDownloadBtn');
+    
+    pdfDownloadBtn.addEventListener('click', downloadCurrentFile);
+    imageDownloadBtn.addEventListener('click', downloadCurrentFile);
+}
+
+// Download the current file
+function downloadCurrentFile() {
+    if (currentMaterial && currentMaterial.downloadUrl) {
+        // Create a temporary anchor element to trigger download
+        const link = document.createElement('a');
+        link.href = currentMaterial.downloadUrl;
+        link.download = currentMaterial.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -92,10 +116,12 @@ async function fetchGitHubContents(path = '') {
             const fileExt = item.name.split('.').pop().toLowerCase();
             if (['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
                 const pathParts = item.path.split('/');
+                // Use raw.githubusercontent.com URL for proper viewing instead of download
+                const rawUrl = `${GITHUB_RAW_BASE}/${CONFIG.githubUsername}/${CONFIG.repositoryName}/${CONFIG.branch}/${item.path}`;
                 const material = {
                     name: item.name,
                     path: item.path,
-                    downloadUrl: item.download_url,
+                    downloadUrl: rawUrl,
                     type: fileExt === 'pdf' ? 'pdf' : 'image',
                     class: extractClass(pathParts),
                     year: extractYear(pathParts)
@@ -232,8 +258,12 @@ function openPdfModal(material) {
     const title = document.getElementById('pdfTitle');
     const viewer = document.getElementById('pdfViewer');
 
+    currentMaterial = material;
     title.textContent = material.name;
-    viewer.src = material.downloadUrl;
+    viewer.onerror = function() {
+        alert('Failed to load PDF. You can download it using the download button.');
+    };
+    viewer.src = material.downloadUrl + '?inline=true';
     modal.classList.add('active');
 }
 
@@ -251,7 +281,11 @@ function openImageModal(material) {
     const title = document.getElementById('imageTitle');
     const viewer = document.getElementById('imageViewer');
 
+    currentMaterial = material;
     title.textContent = material.name;
+    viewer.onerror = function() {
+        alert('Failed to load image. Please try again later.');
+    };
     viewer.src = material.downloadUrl;
     viewer.alt = material.name;
     modal.classList.add('active');

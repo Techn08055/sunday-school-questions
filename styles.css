@@ -349,7 +349,8 @@ main {
     font-size: 1.3rem;
 }
 
-.close-btn {
+.close-btn,
+.download-btn {
     background: none;
     border: none;
     font-size: 1.5rem;
@@ -362,6 +363,15 @@ main {
 .close-btn:hover {
     color: var(--danger-color);
     transform: rotate(90deg);
+}
+
+.download-btn:hover {
+    color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.download-btn:active {
+    transform: translateY(0);
 }
 
 .modal-body {
@@ -481,7 +491,8 @@ footer {
         height: 65vh;
     }
 
-    .close-btn {
+    .close-btn,
+    .download-btn {
         font-size: 1.8rem;
         padding: 0.5rem;
         min-width: 44px;
@@ -588,7 +599,8 @@ footer {
 
     .refresh-btn,
     .filter-group select,
-    .close-btn {
+    .close-btn,
+    .download-btn {
         min-height: 44px;
         min-width: 44px;
     }
@@ -609,6 +621,24 @@ footer {
 
     .refresh-btn:active {
         transform: scale(0.98);
+    }
+
+    .download-btn:hover {
+        transform: none;
+    }
+
+    .download-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+
+    .close-btn:hover {
+        transform: none;
+    }
+
+    .close-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
     }
 }
 

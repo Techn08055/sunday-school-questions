@@ -60,12 +60,17 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="pdfTitle"></h3>
-                <button class="close-btn" onclick="closePdfModal()">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="pdfDownloadBtn" class="download-btn" title="Download PDF">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="close-btn" onclick="closePdfModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div class="modal-body">
-                <iframe id="pdfViewer" frameborder="0"></iframe>
+                <iframe id="pdfViewer" frameborder="0" type="application/pdf"></iframe>
             </div>
         </div>
     </div>
@@ -75,9 +80,14 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="imageTitle"></h3>
-                <button class="close-btn" onclick="closeImageModal()">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="imageDownloadBtn" class="download-btn" title="Download Image">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="close-btn" onclick="closeImageModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div class="modal-body">
                 <img id="imageViewer" alt="Question image">
