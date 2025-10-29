@@ -753,7 +753,7 @@ footer {
 }
 
 .pdf-viewer-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: white;
     padding: 1rem 1.5rem;
     display: flex;
@@ -764,6 +764,8 @@ footer {
     gap: 1rem;
     flex-wrap: wrap;
     min-height: 70px;
+    position: relative;
+    z-index: 1;
 }
 
 .pdf-header-left {
@@ -858,12 +860,22 @@ footer {
     gap: 0.8rem;
     flex-wrap: nowrap;
     overflow: visible;
+    background: transparent;
+}
+
+.pdf-toolbar .pdf-btn,
+.pdf-toolbar .page-count-info {
+    color: white !important;
+}
+
+.pdf-toolbar .pdf-btn i {
+    color: white !important;
 }
 
 .pdf-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: white !important;
     padding: 0.6rem 0.8rem;
     border-radius: 6px;
     cursor: pointer;
@@ -878,9 +890,18 @@ footer {
     white-space: nowrap;
 }
 
+.pdf-btn i {
+    color: white !important;
+    opacity: 1 !important;
+}
+
 .pdf-btn:hover {
     background: rgba(255, 255, 255, 0.3);
     transform: translateY(-1px);
+}
+
+.pdf-btn:hover i {
+    color: white !important;
 }
 
 .pdf-btn:active {
@@ -889,12 +910,13 @@ footer {
 
 .page-count-info {
     padding: 0.6rem 1rem;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.2) !important;
     border-radius: 6px;
     font-size: 0.95rem;
     font-weight: 500;
     white-space: nowrap;
     flex-shrink: 0;
+    color: white !important;
 }
 
 .pdf-error {
