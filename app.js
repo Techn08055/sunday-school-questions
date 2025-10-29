@@ -5,8 +5,8 @@ let years = new Set();
 
 // PDF State
 let pdfDoc = null;
-let currentPage = 1;
-let scale = 1.5;
+let scale = 1.2;
+let allPagesRendered = false;
 
 // DOM Elements
 const loadingEl = document.getElementById('loading');
@@ -18,6 +18,13 @@ const searchInput = document.getElementById('searchInput');
 const classFilter = document.getElementById('classFilter');
 const yearFilter = document.getElementById('yearFilter');
 const refreshBtn = document.getElementById('refreshBtn');
+const pdfViewerContainer = document.getElementById('pdfViewerContainer');
+const pdfPagesContainer = document.getElementById('pdfPagesContainer');
+const mainContent = document.querySelector('main');
+const header = document.querySelector('header');
+const footer = document.querySelector('footer');
+const emptyStateTitle = document.getElementById('emptyStateTitle');
+const emptyStateMessage = document.getElementById('emptyStateMessage');
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,7 +36,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // Setup event listeners
 function setupEventListeners() {
     searchInput.addEventListener('input', filterMaterials);
-    classFilter.addEventListener('change', filterMaterials);
+    classFilter.addEventListener('change', () => {
+        filterMaterials();
+        // When class is selected, show only that class's materials
+        if (classFilter.value) {
+            filterMaterials();
+        }
+    });
     yearFilter.addEventListener('change', filterMaterials);
     refreshBtn.addEventListener('click', () => {
         allMaterials = [];
@@ -41,53 +54,63 @@ function setupEventListeners() {
 
 // Setup PDF controls
 function setupPdfControls() {
-    const prevBtn = document.getElementById('prevPageBtn');
-    const nextBtn = document.getElementById('nextPageBtn');
-    const pageInput = document.getElementById('pageInput');
+    const backBtn = document.getElementById('pdfBackBtn');
     const zoomInBtn = document.getElementById('zoomInBtn');
     const zoomOutBtn = document.getElementById('zoomOutBtn');
-
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            if (pdfDoc && currentPage > 1) {
-                renderPage(--currentPage);
-            }
-        });
-    }
-
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            if (pdfDoc && currentPage < pdfDoc.numPages) {
-                renderPage(++currentPage);
-            }
-        });
-    }
-
-    if (pageInput) {
-        pageInput.addEventListener('change', () => {
-            const pageNum = parseInt(pageInput.value);
-            if (pdfDoc && pageNum >= 1 && pageNum <= pdfDoc.numPages) {
-                renderPage(pageNum);
+    const resetZoomBtn = document.getElementById('resetZoomBtn');
+    const wheelZoomHandler = (e) => {
+        if (!pdfDoc || pdfViewerContainer.style.display !== 'flex') return;
+        // Only zoom on Ctrl/Command + wheel to not block normal scrolling
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            const delta = Math.sign(e.deltaY);
+            const step = 0.1;
+            if (delta < 0) {
+                scale += step;
             } else {
-                pageInput.value = currentPage;
+                scale = Math.max(0.3, scale - step);
             }
-        });
+            renderAllPages();
+        }
+    };
+
+    if (backBtn) {
+        backBtn.addEventListener('click', closePdfViewer);
     }
 
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', () => {
             scale += 0.2;
-            if (pdfDoc) renderPage(currentPage);
+            if (pdfDoc && allPagesRendered) {
+                renderAllPages();
+            }
         });
     }
 
     if (zoomOutBtn) {
         zoomOutBtn.addEventListener('click', () => {
-            if (scale > 0.5) {
+            if (scale > 0.3) {
                 scale -= 0.2;
-                if (pdfDoc) renderPage(currentPage);
+                if (pdfDoc && allPagesRendered) {
+                    renderAllPages();
+                }
             }
         });
+    }
+
+    if (resetZoomBtn) {
+        resetZoomBtn.addEventListener('click', () => {
+            scale = 1.2;
+            if (pdfDoc && allPagesRendered) {
+                renderAllPages();
+            }
+        });
+    }
+
+    // Wheel zoom (Ctrl/Cmd + scroll) on the full-screen viewer
+    if (pdfViewerContainer) {
+        // Use non-passive to allow preventDefault when zooming
+        pdfViewerContainer.addEventListener('wheel', wheelZoomHandler, { passive: false });
     }
 }
 
@@ -105,7 +128,12 @@ async function loadMaterials() {
         const materials = await fetchGitHubContents();
         allMaterials = materials;
         populateFilters();
-        renderMaterials(allMaterials);
+        // Show empty state initially prompting to select a class
+        contentEl.innerHTML = '';
+        emptyStateEl.style.display = 'block';
+        contentEl.style.display = 'none';
+        emptyStateTitle.textContent = 'Select a Class';
+        emptyStateMessage.textContent = 'Please select a class from the dropdown to view question papers';
         hideLoading();
     } catch (error) {
         console.error('Error loading materials:', error);
@@ -217,15 +245,25 @@ function populateFilters() {
     });
 }
 
-// Filter materials based on search and filters
+// Filter materials based on search and filters - show only selected class
 function filterMaterials() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedClass = classFilter.value;
     const selectedYear = yearFilter.value;
 
+    // If no class is selected, show empty (as per user requirement)
+    if (!selectedClass) {
+        contentEl.innerHTML = '';
+        emptyStateEl.style.display = 'block';
+        contentEl.style.display = 'none';
+        emptyStateTitle.textContent = 'Select a Class';
+        emptyStateMessage.textContent = 'Please select a class from the dropdown to view question papers';
+        return;
+    }
+
     const filtered = allMaterials.filter(material => {
         const matchesSearch = material.name.toLowerCase().includes(searchTerm);
-        const matchesClass = !selectedClass || material.class === selectedClass;
+        const matchesClass = material.class === selectedClass; // Only selected class
         const matchesYear = !selectedYear || material.year === selectedYear;
         return matchesSearch && matchesClass && matchesYear;
     });
@@ -240,6 +278,8 @@ function renderMaterials(materials) {
     if (materials.length === 0) {
         emptyStateEl.style.display = 'block';
         contentEl.style.display = 'none';
+        emptyStateTitle.textContent = 'No materials found';
+        emptyStateMessage.textContent = 'Try adjusting your filters or search criteria';
         return;
     }
 
@@ -275,82 +315,109 @@ function createMaterialCard(material) {
     return card;
 }
 
-// Open material in modal
+// Open material
 function openMaterial(material) {
     if (material.type === 'pdf') {
-        openPdfModal(material);
+        openPdfViewer(material);
     } else {
         openImageModal(material);
     }
 }
 
-// PDF Modal functions - with PDF.js support
-async function openPdfModal(material) {
-    const modal = document.getElementById('pdfModal');
+// PDF Viewer functions - Full screen with all pages
+async function openPdfViewer(material) {
     const title = document.getElementById('pdfTitle');
     const downloadBtn = document.getElementById('pdfDownloadBtn');
+    const pageCountInfo = document.getElementById('pageCountInfo');
 
     title.textContent = material.name;
     downloadBtn.href = material.downloadUrl;
     downloadBtn.download = material.name;
-
-    modal.classList.add('active');
+    
+    // Hide main content, header, footer and show PDF viewer
+    mainContent.style.display = 'none';
+    header.style.display = 'none';
+    footer.style.display = 'none';
+    pdfViewerContainer.style.display = 'flex';
+    pdfPagesContainer.innerHTML = '';
+    pageCountInfo.textContent = 'Loading...';
+    allPagesRendered = false;
 
     try {
         // Load PDF using PDF.js
         const pdf = await pdfjsLib.getDocument(material.downloadUrl).promise;
         pdfDoc = pdf;
-        currentPage = 1;
-        scale = 1.5;
+        scale = 1.2;
         
         // Update page count
-        document.getElementById('pageCount').textContent = ` / ${pdf.numPages}`;
-        document.getElementById('pageInput').max = pdf.numPages;
+        pageCountInfo.textContent = `${pdf.numPages} pages`;
         
-        // Render first page
-        renderPage(currentPage);
+        // Render all pages
+        await renderAllPages();
     } catch (error) {
         console.error('Error loading PDF:', error);
-        alert('Error loading PDF. It may not be accessible from this URL.\n\nTip: You can still download it using the download button.');
+        pageCountInfo.textContent = 'Error loading PDF';
+        pdfPagesContainer.innerHTML = `
+            <div class="pdf-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Error loading PDF. <a href="${material.downloadUrl}" download="${material.name}" class="download-link">Click here to download</a></p>
+            </div>
+        `;
     }
 }
 
-function closePdfModal() {
-    const modal = document.getElementById('pdfModal');
-    const canvas = document.getElementById('pdfCanvas');
-    
-    modal.classList.remove('active');
+function closePdfViewer() {
+    pdfViewerContainer.style.display = 'none';
+    mainContent.style.display = 'block';
+    header.style.display = 'block';
+    footer.style.display = 'block';
     pdfDoc = null;
-    currentPage = 1;
-    scale = 1.5;
-    if (canvas) {
-        canvas.width = 0;
-        canvas.height = 0;
-    }
+    allPagesRendered = false;
+    pdfPagesContainer.innerHTML = '';
+    scale = 1.2;
 }
 
-async function renderPage(pageNum) {
+async function renderAllPages() {
     if (!pdfDoc) return;
     
+    pdfPagesContainer.innerHTML = '';
+    allPagesRendered = false;
+
     try {
-        const page = await pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: scale });
-        const canvas = document.getElementById('pdfCanvas');
-        const context = canvas.getContext('2d');
+        // Render all pages at once
+        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: scale });
+            
+            // Create canvas for each page
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            canvas.className = 'pdf-page-canvas';
+            
+            // Create container for each page
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'pdf-page-container';
+            pageContainer.appendChild(canvas);
+            pdfPagesContainer.appendChild(pageContainer);
+            
+            // Render page
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+        }
         
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        
-        await page.render({
-            canvasContext: context,
-            viewport: viewport
-        }).promise;
-        
-        // Update page input
-        document.getElementById('pageInput').value = pageNum;
-        currentPage = pageNum;
+        allPagesRendered = true;
     } catch (error) {
-        console.error('Error rendering page:', error);
+        console.error('Error rendering pages:', error);
+        pdfPagesContainer.innerHTML = `
+            <div class="pdf-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Error rendering PDF pages</p>
+            </div>
+        `;
     }
 }
 
@@ -374,22 +441,20 @@ function closeImageModal() {
     viewer.src = '';
 }
 
-// Close modal when clicking outside
+// Close image modal when clicking outside
 window.onclick = function(event) {
-    const pdfModal = document.getElementById('pdfModal');
     const imageModal = document.getElementById('imageModal');
-    
-    if (event.target === pdfModal) {
-        closePdfModal();
-    } else if (event.target === imageModal) {
+    if (event.target === imageModal) {
         closeImageModal();
     }
 }
 
-// Close modal with Escape key
+// Close viewer with Escape key
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        closePdfModal();
+        if (pdfViewerContainer.style.display === 'flex') {
+            closePdfViewer();
+        }
         closeImageModal();
     }
 });

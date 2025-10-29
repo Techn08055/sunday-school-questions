@@ -53,45 +53,41 @@
 
         <section id="emptyState" class="empty-state" style="display: none;">
             <i class="fas fa-folder-open"></i>
-            <h3>No materials found</h3>
-            <p>Try adjusting your filters or search criteria</p>
+            <h3 id="emptyStateTitle">No materials found</h3>
+            <p id="emptyStateMessage">Please select a class to view question papers</p>
         </section>
     </main>
 
-    <!-- PDF Viewer Modal -->
-    <div id="pdfModal" class="modal">
-        <div class="modal-content pdf-modal-content">
-            <div class="modal-header">
-                <h3 id="pdfTitle"></h3>
-                <div class="pdf-controls">
+    <!-- Full-Screen PDF Viewer -->
+    <div id="pdfViewerContainer" class="pdf-viewer-container">
+        <div class="pdf-viewer-header">
+            <div class="pdf-header-left">
+                <button id="pdfBackBtn" class="pdf-btn back-btn" title="Back to Materials">
+                    <i class="fas fa-arrow-left"></i> <span class="btn-text">Back</span>
+                </button>
+                <h3 id="pdfTitle" class="pdf-title"></h3>
+            </div>
+            <div class="pdf-header-right">
+                <div class="pdf-toolbar">
+                    <span id="pageCountInfo" class="page-count-info">Loading...</span>
+                    <button id="zoomOutBtn" class="pdf-btn" title="Zoom Out">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button id="resetZoomBtn" class="pdf-btn" title="Reset Zoom">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </button>
+                    <button id="zoomInBtn" class="pdf-btn" title="Zoom In">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
                     <a id="pdfDownloadBtn" class="pdf-btn" title="Download PDF">
                         <i class="fas fa-download"></i>
                     </a>
-                    <button class="close-btn" onclick="closePdfModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
                 </div>
             </div>
-            <div class="pdf-toolbar">
-                <button id="prevPageBtn" class="pdf-btn" title="Previous Page">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="page-info">
-                    <input type="number" id="pageInput" min="1" value="1" title="Go to page">
-                    <span id="pageCount"> / 0</span>
-                </div>
-                <button id="nextPageBtn" class="pdf-btn" title="Next Page">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-                <button id="zoomOutBtn" class="pdf-btn" title="Zoom Out">
-                    <i class="fas fa-search-minus"></i>
-                </button>
-                <button id="zoomInBtn" class="pdf-btn" title="Zoom In">
-                    <i class="fas fa-search-plus"></i>
-                </button>
-            </div>
-            <div class="modal-body pdf-body">
-                <canvas id="pdfCanvas"></canvas>
+        </div>
+        <div class="pdf-viewer-body">
+            <div id="pdfPagesContainer" class="pdf-pages-container">
+                <!-- PDF pages will be rendered here -->
             </div>
         </div>
     </div>
