@@ -7,6 +7,10 @@ let years = new Set();
 let pdfDoc = null;
 let scale = 1.2;
 let allPagesRendered = false;
+let renderedPages = new Set();
+let pageRenderQueue = [];
+let intersectionObserver = null;
+let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 // DOM Elements
 const loadingEl = document.getElementById('loading');
@@ -81,7 +85,7 @@ function setupPdfControls() {
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', () => {
             scale += 0.2;
-            if (pdfDoc && allPagesRendered) {
+            if (pdfDoc) {
                 renderAllPages();
             }
         });
@@ -91,7 +95,7 @@ function setupPdfControls() {
         zoomOutBtn.addEventListener('click', () => {
             if (scale > 0.3) {
                 scale -= 0.2;
-                if (pdfDoc && allPagesRendered) {
+                if (pdfDoc) {
                     renderAllPages();
                 }
             }
@@ -100,8 +104,8 @@ function setupPdfControls() {
 
     if (resetZoomBtn) {
         resetZoomBtn.addEventListener('click', () => {
-            scale = 1.2;
-            if (pdfDoc && allPagesRendered) {
+            scale = isMobile ? 0.8 : 1.2;
+            if (pdfDoc) {
                 renderAllPages();
             }
         });
@@ -342,18 +346,35 @@ async function openPdfViewer(material) {
     pdfPagesContainer.innerHTML = '';
     pageCountInfo.textContent = 'Loading...';
     allPagesRendered = false;
+    renderedPages.clear();
+    pageRenderQueue = [];
+    
+    // Cleanup previous observer
+    if (intersectionObserver) {
+        intersectionObserver.disconnect();
+        intersectionObserver = null;
+    }
 
     try {
-        // Load PDF using PDF.js
-        const pdf = await pdfjsLib.getDocument(material.downloadUrl).promise;
+        // Load PDF using PDF.js with optimized settings for mobile
+        const loadingTask = pdfjsLib.getDocument({
+            url: material.downloadUrl,
+            disableAutoFetch: false,
+            disableStream: false,
+            verbosity: 0 // Reduce console output for better performance
+        });
+        
+        const pdf = await loadingTask.promise;
         pdfDoc = pdf;
-        scale = 1.2;
+        
+        // Use lower scale on mobile for better performance
+        scale = isMobile ? 0.8 : 1.2;
         
         // Update page count
         pageCountInfo.textContent = `${pdf.numPages} pages`;
         
-        // Render all pages
-        await renderAllPages();
+        // Initialize pages with lazy loading (this is fast now!)
+        await initializePagesWithLazyLoading();
     } catch (error) {
         console.error('Error loading PDF:', error);
         pageCountInfo.textContent = 'Error loading PDF';
@@ -373,52 +394,180 @@ function closePdfViewer() {
     footer.style.display = 'block';
     pdfDoc = null;
     allPagesRendered = false;
+    renderedPages.clear();
+    pageRenderQueue = [];
     pdfPagesContainer.innerHTML = '';
-    scale = 1.2;
+    scale = isMobile ? 0.8 : 1.2;
+    
+    // Cleanup observer
+    if (intersectionObserver) {
+        intersectionObserver.disconnect();
+        intersectionObserver = null;
+    }
 }
 
-async function renderAllPages() {
+// Initialize pages with lazy loading for mobile performance
+async function initializePagesWithLazyLoading() {
     if (!pdfDoc) return;
     
     pdfPagesContainer.innerHTML = '';
-    allPagesRendered = false;
+    renderedPages.clear();
+    
+    // Create page containers first (visible immediately)
+    const pagesToPreload = isMobile ? 2 : 5; // Preload fewer pages on mobile
+    
+    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+        const pageContainer = document.createElement('div');
+        pageContainer.className = 'pdf-page-container pdf-page-placeholder';
+        pageContainer.dataset.pageNum = pageNum;
+        
+        // Create loading placeholder
+        const placeholder = document.createElement('div');
+        placeholder.className = 'pdf-page-loading';
+        placeholder.innerHTML = '<div class="loading-spinner"></div><p>Loading page ' + pageNum + '...</p>';
+        pageContainer.appendChild(placeholder);
+        
+        // Create canvas element (hidden initially)
+        const canvas = document.createElement('canvas');
+        canvas.className = 'pdf-page-canvas';
+        canvas.style.display = 'none';
+        pageContainer.appendChild(canvas);
+        
+        pdfPagesContainer.appendChild(pageContainer);
+    }
+    
+    // Preload first few pages immediately
+    for (let i = 1; i <= Math.min(pagesToPreload, pdfDoc.numPages); i++) {
+        await renderPage(i);
+    }
+    
+    // Setup Intersection Observer for lazy loading remaining pages
+    setupIntersectionObserver();
+}
 
+// Setup Intersection Observer for lazy loading
+function setupIntersectionObserver() {
+    if (!pdfDoc || !window.IntersectionObserver) {
+        // Fallback: render all pages if IntersectionObserver not supported
+        renderRemainingPages();
+        return;
+    }
+    
+    const options = {
+        root: pdfPagesContainer.closest('.pdf-viewer-body'),
+        rootMargin: '200px', // Start loading 200px before page is visible
+        threshold: 0.1
+    };
+    
+    intersectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const pageNum = parseInt(entry.target.dataset.pageNum);
+                if (!renderedPages.has(pageNum)) {
+                    renderPage(pageNum);
+                }
+                // Unobserve after rendering to avoid re-rendering
+                intersectionObserver.unobserve(entry.target);
+            }
+        });
+    }, options);
+    
+    // Observe all page containers
+    const pageContainers = pdfPagesContainer.querySelectorAll('.pdf-page-container');
+    pageContainers.forEach(container => {
+        intersectionObserver.observe(container);
+    });
+}
+
+// Render a single page
+async function renderPage(pageNum) {
+    if (!pdfDoc || renderedPages.has(pageNum)) return;
+    
+    renderedPages.add(pageNum);
+    const pageContainer = pdfPagesContainer.querySelector(`[data-page-num="${pageNum}"]`);
+    if (!pageContainer) return;
+    
     try {
-        // Render all pages at once
-        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-            const page = await pdfDoc.getPage(pageNum);
-            const viewport = page.getViewport({ scale: scale });
-            
-            // Create canvas for each page
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
+        const page = await pdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale: scale });
+        
+        const canvas = pageContainer.querySelector('.pdf-page-canvas');
+        const context = canvas.getContext('2d');
+        
+        // Optimize canvas size for mobile
+        if (isMobile) {
+            // Reduce DPR on mobile for better performance
+            const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            canvas.width = viewport.width * dpr;
+            canvas.height = viewport.height * dpr;
+            canvas.style.width = viewport.width + 'px';
+            canvas.style.height = viewport.height + 'px';
+            context.scale(dpr, dpr);
+        } else {
             canvas.width = viewport.width;
             canvas.height = viewport.height;
-            canvas.className = 'pdf-page-canvas';
-            
-            // Create container for each page
-            const pageContainer = document.createElement('div');
-            pageContainer.className = 'pdf-page-container';
-            pageContainer.appendChild(canvas);
-            pdfPagesContainer.appendChild(pageContainer);
-            
-            // Render page
-            await page.render({
-                canvasContext: context,
-                viewport: viewport
-            }).promise;
         }
         
-        allPagesRendered = true;
+        // Hide placeholder, show canvas
+        const placeholder = pageContainer.querySelector('.pdf-page-loading');
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+        canvas.style.display = 'block';
+        
+        // Render page
+        await page.render({
+            canvasContext: context,
+            viewport: viewport
+        }).promise;
+        
+        // Remove placeholder class
+        pageContainer.classList.remove('pdf-page-placeholder');
     } catch (error) {
-        console.error('Error rendering pages:', error);
-        pdfPagesContainer.innerHTML = `
-            <div class="pdf-error">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Error rendering PDF pages</p>
-            </div>
-        `;
+        console.error(`Error rendering page ${pageNum}:`, error);
+        const placeholder = pageContainer.querySelector('.pdf-page-loading');
+        if (placeholder) {
+            placeholder.innerHTML = '<p>Error loading page ' + pageNum + '</p>';
+        }
     }
+}
+
+// Render all remaining pages (fallback or on demand)
+async function renderRemainingPages() {
+    if (!pdfDoc) return;
+    
+    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+        if (!renderedPages.has(pageNum)) {
+            await renderPage(pageNum);
+        }
+    }
+    
+    allPagesRendered = true;
+}
+
+// Legacy function for zoom controls - now triggers re-render with lazy loading
+async function renderAllPages() {
+    if (!pdfDoc) return;
+    
+    // Clear existing renders
+    renderedPages.clear();
+    
+    // Remove existing canvases but keep containers
+    const canvases = pdfPagesContainer.querySelectorAll('.pdf-page-canvas');
+    canvases.forEach(canvas => {
+        canvas.style.display = 'none';
+        canvas.width = 0;
+        canvas.height = 0;
+    });
+    
+    // Show placeholders again
+    const placeholders = pdfPagesContainer.querySelectorAll('.pdf-page-loading');
+    placeholders.forEach(placeholder => {
+        placeholder.style.display = 'block';
+    });
+    
+    // Re-render all pages with new scale
+    await renderRemainingPages();
 }
 
 // Image Modal functions
